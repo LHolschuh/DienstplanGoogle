@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dienstplaner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#f59e0b',
+                        night: '#1e40af',
+                        late: '#9333ea',
+                        early: '#10b981',
+                        'third': '#FF0000',
+                        'fourth': '#FFFF00'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .calendar-day {
+            transition: all 0.2s ease;
+        }
+        .calendar-day:hover {
+            transform: scale(1.05);
+        }
+        .template-btn {
+            transition: all 0.2s ease;
+        }
+        .template-btn:hover {
+            transform: translateY(-2px);
+        }
+        @media (max-width: 640px) {
+            .month-nav {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <header class="mb-8 text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Dienstplaner</h1>
+        <p class="text-gray-600">Einfache Planung Ihrer Dienste</p>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Month Navigation -->
+        <div class="month-nav flex justify-between items-center mb-6 bg-white rounded-lg shadow p-4">
+            <button id="prev-month" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition">
+                <i class="fas fa-chevron-left mr-2"></i>Vorheriger Monat
+            </button>
+            <h2 id="current-month" class="text-xl font-semibold text-gray-700">Januar 2023</h2>
+            <button id="next-month" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition">
+                Nächster Monat<i class="fas fa-chevron-right ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Templates Section -->
+        <div class="mb-8 bg-white rounded-lg shadow p-4">
+            <h3 class="text-lg font-semibold mb-4 text-gray-700">Vorlagen</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4" id="templates-container">
+                <!-- Templates will be added here dynamically -->
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button id="add-template-btn"
+                        class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-amber-600 transition">
+                    <i class="fas fa-plus mr-2"></i>Neue Vorlage
+                </button>
+                <button id="edit-templates-btn"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                    <i class="fas fa-edit mr-2"></i>Vorlagen bearbeiten
+                </button>
+            </div>
+        </div>
+
+        <!-- Calendar -->
+        <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
+            <div class="grid grid-cols-7 bg-gray-100 border-b">
+                <div class="py-2 text-center font-medium text-gray-500">Mo</div>
+                <div class="py-2 text-center font-medium text-gray-500">Di</div>
+                <div class="py-2 text-center font-medium text-gray-500">Mi</div>
+                <div class="py-2 text-center font-medium text-gray-500">Do</div>
+                <div class="py-2 text-center font-medium text-gray-500">Fr</div>
+                <div class="py-2 text-center font-medium text-gray-500">Sa</div>
+                <div class="py-2 text-center font-medium text-gray-500">So</div>
+            </div>
+            <div class="grid grid-cols-7" id="calendar-days">
+                <!-- Calendar days will be added here dynamically -->
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-wrap gap-4 justify-center">
+            <button id="save-btn"
+                    class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
+                <i class="fas fa-save mr-2"></i>Plan speichern
+            </button>
+            <button id="export-btn"
+                    class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                <i class="fas fa-calendar-alt mr-2"></i>Zu Google Kalender hinzufügen
+            </button>
+            <button id="clear-btn"
+                    class="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium">
+                <i class="fas fa-trash-alt mr-2"></i>Alles löschen
+            </button>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Add/Edit Template Modal -->
+    <div id="template-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-4" id="template-modal-title">Neue Vorlage erstellen</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="template-name" class="block text-sm font-medium text-gray-700 mb-1">Kürzel (z.B. F, SP,
+                        N)</label>
+                    <input type="text" id="template-name"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div>
+                    <label for="template-description"
+                           class="block text-sm font-medium text-gray-700 mb-1">Beschreibung</label>
+                    <input type="text" id="template-description"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div>
+                    <label for="template-start" class="block text-sm font-medium text-gray-700 mb-1">Startzeit</label>
+                    <input type="time" id="template-start"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div>
+                    <label for="template-end" class="block text-sm font-medium text-gray-700 mb-1">Endzeit</label>
+                    <input type="time" id="template-end"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div>
+                    <label for="template-color" class="block text-sm font-medium text-gray-700 mb-1">Farbe</label>
+                    <select id="template-color"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                        <option value="early">Grün (Frühdienst)</option>
+                        <option value="late">Lila (Spätdienst)</option>
+                        <option value="night">Blau (Nachtdienst)</option>
+                        <option value="primary">Blau</option>
+                        <option value="secondary">Orange</option>
+                        <option value="third">Rot</option>
+                        <option value="fourth">Gelb</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="cancel-template" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                    Abbrechen
+                </button>
+                <button id="save-template" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700">
+                    Speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Templates Modal -->
+    <div id="edit-templates-modal"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-4">Vorlagen bearbeiten</h3>
+            <div class="space-y-3 mb-4" id="templates-list">
+                <!-- Templates list will be added here dynamically -->
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="close-edit-modal" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                    Schließen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-4">Zu Google Kalender hinzufügen</h3>
+            <p class="mb-4 text-gray-700">Ihr Dienstplan wird als ICS-Datei erstellt, die Sie in Google Kalender
+                importieren können.</p>
+            <div class="flex flex-col gap-3">
+                <button id="download-ics" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-download mr-2"></i>ICS-Datei herunterladen
+                </button>
+                <a id="open-google-calendar" href="#" target="_blank"
+                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center">
+                    <i class="fas fa-external-link-alt mr-2"></i>Google Kalender öffnen
+                </a>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button id="close-export-modal"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Schließen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Current date
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+
+        // Selected template
+        let selectedTemplate = null;
+
+        // Templates data
+        let templates = [
+            { id: 1, name: 'F', description: 'Frühdienst', start: '06:00', end: '14:00', color: 'early' },
+            { id: 2, name: 'SP', description: 'Spätdienst', start: '14:00', end: '22:00', color: 'late' },
+            { id: 3, name: 'N', description: 'Nachtdienst', start: '22:00', end: '06:00', color: 'night' },
+            { id: 4, name: 'Frei AK', description: 'Frei', start: '00:00', end: '01:00', color: 'primary' },
+            { id: 5, name: 'Frei K', description: 'Frei', start: '00:00', end: '01:00', color: 'secondary' },
+            { id: 6, name: 'SD K', description: 'SD K', start: '22:00', end: '06:00', color: 'third' }
+        ];
+
+        // Schedule data
+        let schedule = JSON.parse(localStorage.getItem('dienstplaner_schedule')) || {};
+
+        // DOM Elements
+        const currentMonthElement = document.getElementById('current-month');
+        const calendarDaysElement = document.getElementById('calendar-days');
+        const templatesContainer = document.getElementById('templates-container');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const addTemplateBtn = document.getElementById('add-template-btn');
+        const editTemplatesBtn = document.getElementById('edit-templates-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const clearBtn = document.getElementById('clear-btn');
+
+        // Modal elements
+        const templateModal = document.getElementById('template-modal');
+        const editTemplatesModal = document.getElementById('edit-templates-modal');
+        const exportModal = document.getElementById('export-modal');
+        const templateModalTitle = document.getElementById('template-modal-title');
+        const templateNameInput = document.getElementById('template-name');
+        const templateDescriptionInput = document.getElementById('template-description');
+        const templateStartInput = document.getElementById('template-start');
+        const templateEndInput = document.getElementById('template-end');
+        const templateColorInput = document.getElementById('template-color');
+        const saveTemplateBtn = document.getElementById('save-template');
+        const cancelTemplateBtn = document.getElementById('cancel-template');
+        const closeEditModalBtn = document.getElementById('close-edit-modal');
+        const closeExportModalBtn = document.getElementById('close-export-modal');
+        const downloadIcsBtn = document.getElementById('download-ics');
+        const openGoogleCalendarLink = document.getElementById('open-google-calendar');
+        const templatesListElement = document.getElementById('templates-list');
+
+        // Initialize the app
+        function init() {
+            renderCalendar();
+            renderTemplates();
+            updateMonthDisplay();
+
+            // Load schedule from localStorage
+            if (localStorage.getItem('dienstplaner_schedule')) {
+                schedule = JSON.parse(localStorage.getItem('dienstplaner_schedule'));
+            }
+        }
+
+        // Render the calendar
+        function renderCalendar() {
+            calendarDaysElement.innerHTML = '';
+
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Adjust for Monday start
+
+            // Add empty cells for days before the first day of the month
+            for (let i = 0; i < startingDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'p-2 h-24 border border-gray-100 bg-gray-50';
+                calendarDaysElement.appendChild(emptyDay);
+            }
+
+            // Add cells for each day of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day p-2 h-24 border border-gray-100 cursor-pointer hover:bg-gray-50';
+                dayElement.dataset.date = dateKey;
+
+                // Day number
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'text-right font-medium text-gray-700';
+                dayNumber.textContent = day;
+                dayElement.appendChild(dayNumber);
+
+                // Template display
+                const templateDisplay = document.createElement('div');
+                templateDisplay.className = 'mt-1 text-center text-sm font-medium';
+
+                if (schedule[dateKey]) {
+                    const template = templates.find(t => t.id === schedule[dateKey].templateId);
+                    if (template) {
+                        templateDisplay.textContent = `${template.name}`;
+                        templateDisplay.className += ` bg-${template.color} text-white py-1 rounded`;
+                    }
+                }
+
+                dayElement.appendChild(templateDisplay);
+                calendarDaysElement.appendChild(dayElement);
+
+                // Add click event
+                dayElement.addEventListener('click', () => {
+                    if (selectedTemplate) {
+                        if (schedule[dateKey] && schedule[dateKey].templateId === selectedTemplate.id) {
+                            // Remove template if same template is clicked again
+                            delete schedule[dateKey];
+                            templateDisplay.textContent = '';
+                            templateDisplay.className = 'mt-1 text-center text-sm font-medium';
+                        } else {
+                            // Add/update template
+                            schedule[dateKey] = {
+                                templateId: selectedTemplate.id,
+                                date: dateKey
+                            };
+                            templateDisplay.textContent = `${selectedTemplate.name}`;
+                            templateDisplay.className = `mt-1 text-center text-sm font-medium bg-${selectedTemplate.color} text-white py-1 rounded`;
+                        }
+                    }
+                });
+            }
+        }
+
+        // Render templates
+        function renderTemplates() {
+            templatesContainer.innerHTML = '';
+
+            templates.forEach(template => {
+                const templateBtn = document.createElement('button');
+                templateBtn.className = `template-btn p-3 rounded-lg text-white font-medium flex items-center justify-center ${selectedTemplate && selectedTemplate.id === template.id ? 'ring-2 ring-offset-2 ring-primary' : ''}`;
+                templateBtn.style.backgroundColor = getColorValue(template.color);
+                templateBtn.innerHTML = `
+                    <span class="text-lg font-bold">${template.name}</span>
+                    <span class="ml-2 text-sm">${template.description}</span>
+                `;
+
+                templateBtn.addEventListener('click', () => {
+                    selectedTemplate = template;
+                    renderTemplates(); // Re-render to update selected state
+                });
+
+                templatesContainer.appendChild(templateBtn);
+            });
+        }
+
+        // Update month display
+        function updateMonthDisplay() {
+            const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+            currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+        }
+
+        // Get color value from Tailwind class
+        function getColorValue(colorClass) {
+            const colors = {
+                'primary': '#3b82f6',
+                'secondary': '#f59e0b',
+                'night': '#1e40af',
+                'late': '#9333ea',
+                'early': '#10b981',
+                'third': '#FF0000',
+                'fourth': '#FFFF00'
+
+
+            };
+            return colors[colorClass] || '#3b82f6';
+        }
+
+        // Generate ICS file content
+        function generateIcsContent() {
+            let icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Dienstplaner//DE',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH'
+            ];
+
+            Object.keys(schedule).forEach(dateKey => {
+                const template = templates.find(t => t.id === schedule[dateKey].templateId);
+                if (template) {
+                    const date = new Date(dateKey);
+                    const startDate = new Date(date);
+                    const endDate = new Date(date);
+
+                    // Set start time
+                    const [startHours, startMinutes] = template.start.split(':').map(Number);
+                    startDate.setHours(startHours, startMinutes, 0, 0);
+
+                    // Set end time
+                    const [endHours, endMinutes] = template.end.split(':').map(Number);
+                    if (endHours < startHours) {
+                        // Handle overnight shifts (e.g., night duty)
+                        endDate.setDate(endDate.getDate() + 1);
+                    }
+                    endDate.setHours(endHours, endMinutes, 0, 0);
+
+                    // Format dates for ICS
+                    const formatDate = (date) => {
+                        return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+                    };
+
+                    icsContent.push(
+                        'BEGIN:VEVENT',
+                        `UID:${dateKey}-${template.id}@dienstplaner`,
+                        `DTSTAMP:${formatDate(new Date())}`,
+                        `DTSTART:${formatDate(startDate)}`,
+                        `DTEND:${formatDate(endDate)}`,
+                        `SUMMARY:${template.description} (${template.name})`,
+                        'END:VEVENT'
+                    );
+                }
+            });
+
+            icsContent.push('END:VCALENDAR');
+            return icsContent.join('\r\n');
+        }
+
+        // Event Listeners
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            updateMonthDisplay();
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            updateMonthDisplay();
+            renderCalendar();
+        });
+
+        addTemplateBtn.addEventListener('click', () => {
+            templateModalTitle.textContent = 'Neue Vorlage erstellen';
+            templateNameInput.value = '';
+            templateDescriptionInput.value = '';
+            templateStartInput.value = '06:00';
+            templateEndInput.value = '14:00';
+            templateColorInput.value = 'early';
+            templateModal.classList.remove('hidden');
+        });
+
+        editTemplatesBtn.addEventListener('click', () => {
+            renderTemplatesList();
+            editTemplatesModal.classList.remove('hidden');
+        });
+
+        saveBtn.addEventListener('click', () => {
+            localStorage.setItem('dienstplaner_schedule', JSON.stringify(schedule));
+            alert('Dienstplan erfolgreich gespeichert!');
+        });
+
+        exportBtn.addEventListener('click', () => {
+            exportModal.classList.remove('hidden');
+            openGoogleCalendarLink.href = 'https://calendar.google.com/calendar/u/0/r/settings/export';
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Möchten Sie wirklich alle Termine löschen?')) {
+                schedule = {};
+                localStorage.removeItem('dienstplaner_schedule');
+                renderCalendar();
+            }
+        });
+
+        saveTemplateBtn.addEventListener('click', () => {
+            const name = templateNameInput.value.trim();
+            const description = templateDescriptionInput.value.trim();
+            const start = templateStartInput.value;
+            const end = templateEndInput.value;
+            const color = templateColorInput.value;
+
+            if (name && description && start && end) {
+                if (templateModalTitle.textContent === 'Neue Vorlage erstellen') {
+                    // Add new template
+                    const newTemplate = {
+                        id: Date.now(),
+                        name,
+                        description,
+                        start,
+                        end,
+                        color
+                    };
+                    templates.push(newTemplate);
+                }
+
+                renderTemplates();
+                templateModal.classList.add('hidden');
+            } else {
+                alert('Bitte füllen Sie alle Felder aus!');
+            }
+        });
+
+        cancelTemplateBtn.addEventListener('click', () => {
+            templateModal.classList.add('hidden');
+        });
+
+        closeEditModalBtn.addEventListener('click', () => {
+            editTemplatesModal.classList.add('hidden');
+        });
+
+        closeExportModalBtn.addEventListener('click', () => {
+            exportModal.classList.add('hidden');
+        });
+
+        downloadIcsBtn.addEventListener('click', () => {
+            const icsContent = generateIcsContent();
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dienstplan_${currentYear}_${currentMonth + 1}.ics`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Render templates list for edit modal
+        function renderTemplatesList() {
+            templatesListElement.innerHTML = '';
+
+            templates.forEach(template => {
+                const templateItem = document.createElement('div');
+                templateItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                templateItem.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full mr-3" style="background-color: ${getColorValue(template.color)}"></div>
+                        <div>
+                            <div class="font-medium">${template.name} - ${template.description}</div>
+                            <div class="text-sm text-gray-600">${template.start} - ${template.end}</div>
+                        </div>
+                    </div>
+                    <button class="delete-template-btn px-3 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200" data-id="${template.id}">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+
+                templatesListElement.appendChild(templateItem);
+            });
+
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.delete-template-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const templateId = parseInt(this.dataset.id);
+                    if (confirm('Möchten Sie diese Vorlage wirklich löschen?')) {
+                        templates = templates.filter(t => t.id !== templateId);
+                        renderTemplatesList();
+                        renderTemplates();
+                    }
+                });
+            });
+        }
+
+        // Initialize the app
+        init();
+    });
+</script>
+</body>
+</html>
